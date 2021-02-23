@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width">
+   <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,700" rel="stylesheet">
+
+   <!-- Bootstrap 5 -->
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+      integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW"
+      crossorigin="anonymous"></script>
+
+   <title>File Uploading</title>
+   <style>
+      #droparea {
+         text-align: center;
+         line-height: 200px;
+         text-align: center;
+         min-height: 200px;
+         border: 1px solid #000;
+         border-radius: 5px;
+      }
+
+      #droparea.dragging::before {
+         content: "Release to drop!";
+      }
+   </style>
+</head>
+
+<body>
+
+   <div class="container">
+      <div class="row d-flex align-items-center justify-content-center">
+         <div class="col-8 mx-auto align-middle my-5 p-3 rounded">
+            <div class="form-group">
+               <div id="droparea" class="my-3 bg-dark bg-gradient text-light"><b>Choose a file</b> or drag it here!</div>
+               <input class="form-control-file" type="file" id="file" multiple hidden>
+            </div>
+            <div class="form-group">
+               <div class="d-grid gap-2">
+                  <button class="btn btn-primary" id="submitBtn">Upload Files</button>
+               </div>
+            </div>
+            <div class="form-group">
+               <div class="progress progress-bar bg-success progress-bar-striped  my-3" role="progressbar" style="width: 0%"
+                  id="progressbar"></div>
+            </div>
+            <div class="form-group">
+               <span class="my-3 text-center d-block alert alert-info p-2">
+                  <button class="btn btn-success" id="clearColumnsBtn">Clear Columns</button>
+                  <div class="row">
+                     <div class="col-6" id="filesToUpload">
+                        <h6 class="font-weight-bold my-1">Files to Upload</h6>
+                     </div>
+                     <div class="col-6" id="uploadStatus">
+                        <h6 class="font-weight-bold my-1">Upload Status</h6>
+                     </div>
+                  </div>
+               </span>
+            </div>
+         </div>
+      </div>
+   </div>
+
+   <script>
+      const formData = new FormData();
+      const xhr = new XMLHttpRequest();
+      const submitBtn = document.getElementById('submitBtn');
+      const clearColumnsBtn = document.getElementById('clearColumnsBtn');
+      const progressBar = document.getElementById('progressbar');
+      const droparea = document.getElementById('droparea');
+      const filesToUpload = document.getElementById('filesToUpload');
+      const uploadStatus = document.getElementById('uploadStatus');
+      const fileInput = document.getElementById('file');
+      var files = [];
+      var fileCount = 0;
+      var uploading = false;
+
+      droparea.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', () => {
+         if (!uploading) {
+            filesToUpload.style.display = 'block';
+
+            for (const file of fileInput.files) {
+               formData.append("myFiles[]", file);
+               filesToUpload.innerHTML += `${file.name}<br>`;
+               fileCount += 1;
+            }
+         }
+      });
+
+      droparea.addEventListener('dragover', (e) => {
+         e.preventDefault();
+         droparea.innerHTML = '';
+         droparea.classList.add('dragging');
+         droparea.classList.remove('bg-dark');
+         droparea.classList.add('bg-secondary');
+      });
+
+      droparea.addEventListener('dragleave', () => {
+         droparea.innerHTML = '<b>Choose a file</b> or drag it here!';
+         droparea.classList.remove('dragging');
+         droparea.classList.add('bg-dark');
+         droparea.classList.remove('bg-secondary');
+      });
+
+      droparea.addEventListener('drop', (e) => {
+         e.preventDefault();
+         if(!uploading) {
+            droparea.innerHTML = '<b>Choose a file</b> or drag it here!';
+            droparea.classList.remove('dragging');
+            droparea.classList.add('bg-dark');
+            droparea.classList.remove('bg-secondary');
+
+            filesToUpload.style.display = 'block';
+            Array.from(e.dataTransfer.files).forEach(file => {
+               formData.append("myFiles[]", file);
+               filesToUpload.innerHTML += `${file.name}<br>`;
+               fileCount += 1;
+            });
+         }
+      });
+
+      submitBtn.addEventListener('click', () => {
+         if (formData.get('myFiles[]')) {
+            if(!uploading) {
+               submitBtn.classList.remove('btn-primary');
+               submitBtn.classList.add('btn-secondary');
+               submitBtn.innerHTML = 'Cancel Uploading';
+               upload();
+               uploading = true;
+            } else {
+               xhr.abort();
+               uploading = false;
+               reset();
+            }
+         }
+      });
+
+      function upload() {
+
+         xhr.upload.addEventListener("progress", success => {
+            if (success.lengthComputable) {
+               var progress = (success.loaded / success.total) * 100;
+               progress = progress.toFixed(0);
+               progressbar.style.width = progress + '%';
+            }
+         }, false);
+
+         xhr.onabort = () => console.log('Uploading aborted!');
+
+         xhr.onload = function () {
+            if (this.status == 200) {
+               if (this.responseText) {
+                  console.log(this.responseText);
+                  const data = JSON.parse(this.responseText);
+                  data.forEach(row => {
+                     if(row.success) {
+                        if(row.file_name === row.new_file_name) uploadStatus.innerHTML += `<span class="badge bg-success">SUCCESS</span><br>`;
+                        else uploadStatus.innerHTML += `<span class="badge bg-warning text-dark">${row.new_file_name}</span><br>`;
+                     }
+                     else uploadStatus.innerHTML += `<span class="badge bg-danger">ERROR</span><br>`;
+                  });
+                  reset();
+               }
+            }
+         }
+
+         xhr.open('POST', 'upload.php');
+         xhr.send(formData);
+      }
+
+      function countOccurences(string, word) {
+         return string.split(word).length - 1;
+      }
+
+      function reset() {
+         if(!uploading) {
+            for(var i = 0; i < fileCount; i += 1) {
+               uploadStatus.innerHTML += '<span class="badge bg-secondary">CANCELLED</span><br>';
+            }
+         }
+         fileCount = 0;
+         progressbar.style.width = '0%';
+         formData.delete('myFiles[]');
+         submitBtn.innerHTML = 'Upload Files';
+         submitBtn.classList.remove('btn-secondary');
+         submitBtn.classList.add('btn-primary');
+         uploading = false;
+      }
+
+      clearColumnsBtn.addEventListener('click', clear);
+
+      function clear() {
+         if (formData.get('myFiles[]')) {
+            alert('Upload your files first!');
+         } else {
+            filesToUpload.innerHTML = '<h6 class="font-weight-bold my-1">Files to Upload</h6>';
+            uploadStatus.innerHTML = '<h6 class="font-weight-bold my-1">Upload Status</h6>';
+         }
+      }
+   </script>
+
+</body>
+
+</html>
