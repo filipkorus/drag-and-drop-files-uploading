@@ -9,6 +9,8 @@ Project is created with:
 * JavaScript
 * Bootstrap 5
 
+## Preview
+
 ![droparea](https://github.com/filipkorus/drag-and-drop-files-uploading/blob/main/uploads/1.png)
 ![dragged](https://github.com/filipkorus/drag-and-drop-files-uploading/blob/main/uploads/2.png)
 ![uploading](https://github.com/filipkorus/drag-and-drop-files-uploading/blob/main/uploads/3.png)
