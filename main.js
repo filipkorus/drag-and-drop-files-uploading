@@ -106,10 +106,6 @@ function upload() {
    xhr.send(formData);
 }
 
-function countOccurences(string, word) {
-   return string.split(word).length - 1;
-}
-
 function reset() {
    if (!uploading) {
       for (var i = 0; i < fileCount; i += 1) {
