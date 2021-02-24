@@ -1,7 +1,6 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
-   header('Access-Cotrol-Allow-Origin: *');
    header('Content-Type: application/json');
 
    if (isset($_FILES["myFiles"])) {
